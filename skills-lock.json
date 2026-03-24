@@ -1,0 +1,110 @@
+{
+  "version": 1,
+  "skills": {
+    "phaser-2d-arcade": {
+      "source": "farworld-labs/remix-skills",
+      "sourceType": "github",
+      "computedHash": "d3b603a6e9dcea2955c5d442ef302144d5af32dc847f511dddd7e5ef9578b735"
+    },
+    "remix-add-image": {
+      "source": "farworld-labs/remix-skills",
+      "sourceType": "github",
+      "computedHash": "13064698b2d401501818bdf71db4cce6397874237f021cc1604c730b8a50a8ce"
+    },
+    "remix-add-sprite": {
+      "source": "farworld-labs/remix-skills",
+      "sourceType": "github",
+      "computedHash": "831bbacfc3e091f0853894fe552b4f7b32d652da3be42cc81092c818e559cd41"
+    },
+    "remix-agent-publish": {
+      "source": "farworld-labs/remix-skills",
+      "sourceType": "github",
+      "computedHash": "14791ab2e650c94b8b2d00c5f98f55a38d6256c9872892b20bb66d37238f7e73"
+    },
+    "remix-api-auth": {
+      "source": "farworld-labs/remix-skills",
+      "sourceType": "github",
+      "computedHash": "b6493a8b8779adccac863518792eaff2365343cb5b79fa6910222cad805f3dc5"
+    },
+    "remix-api-reference": {
+      "source": "farworld-labs/remix-skills",
+      "sourceType": "github",
+      "computedHash": "77ad7c05c6f76fba6982544debcd3d4bcb0340f9d39458a21342c1a76b1fa34c"
+    },
+    "remix-cli": {
+      "source": "farworld-labs/remix-skills",
+      "sourceType": "github",
+      "computedHash": "40ea19e5e3c7474313c64f0db3b5f01d0ca8cd3ed6d645019b11b7073fc0d6f7"
+    },
+    "remix-game-best-practices": {
+      "source": "farworld-labs/remix-skills",
+      "sourceType": "github",
+      "computedHash": "5309486a602accca0492da2f1ea9346b45717f6a65dc8111d264db2738513e6f"
+    },
+    "remix-game-creation": {
+      "source": "farworld-labs/remix-skills",
+      "sourceType": "github",
+      "computedHash": "d7667a2470c44c0bfb5871af7097cd1a06862814df8d5ad29628822aa4e32f3d"
+    },
+    "remix-game-sdk": {
+      "source": "farworld-labs/remix-skills",
+      "sourceType": "github",
+      "computedHash": "0c3b659bba248fe2d09411773869271211d05b1da15ddb4824412bcfb1c37f1e"
+    },
+    "remix-glossary": {
+      "source": "farworld-labs/remix-skills",
+      "sourceType": "github",
+      "computedHash": "4a50af59c804df17739ced34b32e571f705b288ebac966c96cef9cf96272ee26"
+    },
+    "remix-mcp-quickstart": {
+      "source": "farworld-labs/remix-skills",
+      "sourceType": "github",
+      "computedHash": "9d3ccc9fd37c69ac59aee389cabb90fe4a841ef33a90336346a0aec07329c93f"
+    },
+    "remix-multiplayer": {
+      "source": "farworld-labs/remix-skills",
+      "sourceType": "github",
+      "computedHash": "7d0f9114e64143986ea70828bd92b3784c7e65df0e7bce7faab289827d6e30c1"
+    },
+    "remix-open-game": {
+      "source": "farworld-labs/remix-skills",
+      "sourceType": "github",
+      "computedHash": "48f02812c795a9320dea12edf87d86d7f0b4c92921c4a5485d56e4ac5b8b2bdd"
+    },
+    "remix-rest-snippets": {
+      "source": "farworld-labs/remix-skills",
+      "sourceType": "github",
+      "computedHash": "a486e6289baa4918599e47266198c3ba1ad201443e7b97f55647a1cb54357487"
+    },
+    "remix-save-game": {
+      "source": "farworld-labs/remix-skills",
+      "sourceType": "github",
+      "computedHash": "dc29a515857288876db25e0ca948a3023d2edf5df9b8f97b76ea7f926e5bc5f1"
+    },
+    "remix-shop-items": {
+      "source": "farworld-labs/remix-skills",
+      "sourceType": "github",
+      "computedHash": "0b3ad78fd6be5d88b24c4b4837e7e8ff198e771a3212b0aa9278e01e6bf64bc2"
+    },
+    "remix-submission-rules": {
+      "source": "farworld-labs/remix-skills",
+      "sourceType": "github",
+      "computedHash": "35bafbb7008c947a2e06acfde769922b9cac17e68f017cd666e1eafd0278ece9"
+    },
+    "remix-upload-asset": {
+      "source": "farworld-labs/remix-skills",
+      "sourceType": "github",
+      "computedHash": "7184bea4821cafd408df6de4fd022f074eaf8cf652730771e205836a9d04fb08"
+    },
+    "remix-upload-game": {
+      "source": "farworld-labs/remix-skills",
+      "sourceType": "github",
+      "computedHash": "fa2e4eb5ad799602ee08a213198df30cb0feb6554211eac39d74401e9efff1ca"
+    },
+    "threejs-lite": {
+      "source": "farworld-labs/remix-skills",
+      "sourceType": "github",
+      "computedHash": "e54aadfc87ea0bf3d84aeea60a0d6c5b646df283fc7cb6af1e1d66c44b426c6d"
+    }
+  }
+}

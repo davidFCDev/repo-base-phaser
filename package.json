@@ -1,0 +1,32 @@
+{
+  "name": "remix-repo-base",
+  "version": "1.0.0",
+  "description": "remix-repo-base game for Remix platform",
+  "type": "module",
+  "scripts": {
+    "dev": "remix-dev dev",
+    "build": "node scripts/build-no-mangle.js",
+    "build:mangle": "remix-dev build",
+    "preview": "remix-dev preview",
+    "deploy": "remix-dev deploy",
+    "update:skills": "npx skills add farworld-labs/remix-skills -y"
+  },
+  "keywords": [
+    "game",
+    "phaser",
+    "remix"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@farcade/game-sdk": "^0.3.0",
+    "@insidethesim/remix-dev": "^1.4.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "typescript": "^5.9.2",
+    "vite": "^7.0.0"
+  },
+  "dependencies": {
+    "phaser": "^3.90.0"
+  }
+}
