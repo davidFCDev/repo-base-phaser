@@ -4,107 +4,107 @@
     "phaser-2d-arcade": {
       "source": "farworld-labs/remix-skills",
       "sourceType": "github",
-      "computedHash": "d3b603a6e9dcea2955c5d442ef302144d5af32dc847f511dddd7e5ef9578b735"
+      "computedHash": "c28b24b6127e2eb9b0142154ef167a3c04331da71950d56473f8dfc9be3f3fe2"
     },
     "remix-add-image": {
       "source": "farworld-labs/remix-skills",
       "sourceType": "github",
-      "computedHash": "13064698b2d401501818bdf71db4cce6397874237f021cc1604c730b8a50a8ce"
+      "computedHash": "fb44ab4032d0e07df553ab3b629c798ebb99c4cceea4f563260cab4d012c5647"
     },
     "remix-add-sprite": {
       "source": "farworld-labs/remix-skills",
       "sourceType": "github",
-      "computedHash": "831bbacfc3e091f0853894fe552b4f7b32d652da3be42cc81092c818e559cd41"
+      "computedHash": "eb67889a8b5b2558f94a0808f5fb97614774f0cf4f9f7c315427f360d15f6899"
     },
     "remix-agent-publish": {
       "source": "farworld-labs/remix-skills",
       "sourceType": "github",
-      "computedHash": "14791ab2e650c94b8b2d00c5f98f55a38d6256c9872892b20bb66d37238f7e73"
+      "computedHash": "8670f75f879814882c250d9c510942927663cab3860b2bcda5b760c7efb30339"
     },
     "remix-api-auth": {
       "source": "farworld-labs/remix-skills",
       "sourceType": "github",
-      "computedHash": "b6493a8b8779adccac863518792eaff2365343cb5b79fa6910222cad805f3dc5"
+      "computedHash": "0ebb20a9f863d483df6707ab9fdad0eba8ff025fa4243f93b2150617c70add85"
     },
     "remix-api-reference": {
       "source": "farworld-labs/remix-skills",
       "sourceType": "github",
-      "computedHash": "77ad7c05c6f76fba6982544debcd3d4bcb0340f9d39458a21342c1a76b1fa34c"
+      "computedHash": "6b34dfe77c21636448f5de8c7086c64706f56977e36141a2fc6558b44414fb67"
     },
     "remix-cli": {
       "source": "farworld-labs/remix-skills",
       "sourceType": "github",
-      "computedHash": "40ea19e5e3c7474313c64f0db3b5f01d0ca8cd3ed6d645019b11b7073fc0d6f7"
+      "computedHash": "c9e257fc45ce70e9dc620f70849c05a6dc07861d79076d8e06ee132c10db7a10"
     },
     "remix-game-best-practices": {
       "source": "farworld-labs/remix-skills",
       "sourceType": "github",
-      "computedHash": "5309486a602accca0492da2f1ea9346b45717f6a65dc8111d264db2738513e6f"
+      "computedHash": "31080a8f87ef69617569cac22c2145a7d3103693f9eb0164022fcb3a0def966e"
     },
     "remix-game-creation": {
       "source": "farworld-labs/remix-skills",
       "sourceType": "github",
-      "computedHash": "d7667a2470c44c0bfb5871af7097cd1a06862814df8d5ad29628822aa4e32f3d"
+      "computedHash": "4f9c2f34985459fe0c2acf6e6ccbd251feee19186ca65064baaeec97d6f033fe"
     },
     "remix-game-sdk": {
       "source": "farworld-labs/remix-skills",
       "sourceType": "github",
-      "computedHash": "0c3b659bba248fe2d09411773869271211d05b1da15ddb4824412bcfb1c37f1e"
+      "computedHash": "9d30c45435d41136dceebf444b5bac5900ae268066ddf9f57b9933c67408642e"
     },
     "remix-glossary": {
       "source": "farworld-labs/remix-skills",
       "sourceType": "github",
-      "computedHash": "4a50af59c804df17739ced34b32e571f705b288ebac966c96cef9cf96272ee26"
+      "computedHash": "1d1a61966b08601440429a38def0f55b5dc31531d10dc96fa02e30dcadca47d3"
     },
     "remix-mcp-quickstart": {
       "source": "farworld-labs/remix-skills",
       "sourceType": "github",
-      "computedHash": "9d3ccc9fd37c69ac59aee389cabb90fe4a841ef33a90336346a0aec07329c93f"
+      "computedHash": "d682baf3f522121036e3dc10bd3781fb853e69d4fd7f9594f3f59751b1c7222e"
     },
     "remix-multiplayer": {
       "source": "farworld-labs/remix-skills",
       "sourceType": "github",
-      "computedHash": "7d0f9114e64143986ea70828bd92b3784c7e65df0e7bce7faab289827d6e30c1"
+      "computedHash": "d9dc996bbf62316e4a65c047062247f6b00b9f38730142724a7897135fb55690"
     },
     "remix-open-game": {
       "source": "farworld-labs/remix-skills",
       "sourceType": "github",
-      "computedHash": "48f02812c795a9320dea12edf87d86d7f0b4c92921c4a5485d56e4ac5b8b2bdd"
+      "computedHash": "f0dd62ad70e1561aa4c7b71871a3f269c3753264fac8a5ea5a05217d6a21536a"
     },
     "remix-rest-snippets": {
       "source": "farworld-labs/remix-skills",
       "sourceType": "github",
-      "computedHash": "a486e6289baa4918599e47266198c3ba1ad201443e7b97f55647a1cb54357487"
+      "computedHash": "ec84bb6721fe3cf0b23833c275b6760996a29c9f0f1fafd041616cad19f8db98"
     },
     "remix-save-game": {
       "source": "farworld-labs/remix-skills",
       "sourceType": "github",
-      "computedHash": "dc29a515857288876db25e0ca948a3023d2edf5df9b8f97b76ea7f926e5bc5f1"
+      "computedHash": "ff0206c1439a01cdd0bc33cc428781946a55471e5999f304410280a56c9e9637"
     },
     "remix-shop-items": {
       "source": "farworld-labs/remix-skills",
       "sourceType": "github",
-      "computedHash": "0b3ad78fd6be5d88b24c4b4837e7e8ff198e771a3212b0aa9278e01e6bf64bc2"
+      "computedHash": "fcc95b52daa85c736c0d7441d1f8944c0c37260d6cb3b84b3344467ddf467d2d"
     },
     "remix-submission-rules": {
       "source": "farworld-labs/remix-skills",
       "sourceType": "github",
-      "computedHash": "35bafbb7008c947a2e06acfde769922b9cac17e68f017cd666e1eafd0278ece9"
+      "computedHash": "f85c7fca87816b70005ddb9fc85e3a95c54edc72dea599c45752023b09bf0a60"
     },
     "remix-upload-asset": {
       "source": "farworld-labs/remix-skills",
       "sourceType": "github",
-      "computedHash": "7184bea4821cafd408df6de4fd022f074eaf8cf652730771e205836a9d04fb08"
+      "computedHash": "8de60ee2275445abd430198aad7adabde759c57b19689305bf2bae38a0b057e4"
     },
     "remix-upload-game": {
       "source": "farworld-labs/remix-skills",
       "sourceType": "github",
-      "computedHash": "fa2e4eb5ad799602ee08a213198df30cb0feb6554211eac39d74401e9efff1ca"
+      "computedHash": "c3ee7aec51f12686361f70e20fae62393ba875be92e80709db9866d3d9fa3c73"
     },
     "threejs-lite": {
       "source": "farworld-labs/remix-skills",
       "sourceType": "github",
-      "computedHash": "e54aadfc87ea0bf3d84aeea60a0d6c5b646df283fc7cb6af1e1d66c44b426c6d"
+      "computedHash": "fab14dde5b8a9d5de793622f8c1a508a99a7035d0757f8be5731f7d108e10251"
     }
   }
 }

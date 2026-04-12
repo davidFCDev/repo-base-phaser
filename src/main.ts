@@ -1,6 +1,7 @@
 const Phaser = (window as any).Phaser;
 import { getResponsiveDimensions } from "./config/GameSettings";
 import { GameScene } from "./scenes/GameScene";
+import { PreloadScene } from "./scenes/PreloadScene";
 
 // Calcula dimensiones responsive (fullscreen dinámico)
 const dimensions = getResponsiveDimensions();
@@ -16,10 +17,14 @@ const config: Phaser.Types.Core.GameConfig = {
     width: dimensions.width,
     height: dimensions.height,
   },
-  transparent: true,
-  scene: [GameScene],
+  transparent: false,
+  backgroundColor: "#0a0a0a",
+  scene: [PreloadScene, GameScene],
   physics: {
     default: "arcade",
+    arcade: {
+      gravity: { x: 0, y: 0 },
+    },
   },
   fps: {
     target: 60,
