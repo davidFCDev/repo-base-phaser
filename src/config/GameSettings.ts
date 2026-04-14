@@ -36,24 +36,24 @@ export const GameSettings = {
   blood: {
     max: 100,
     drainPerSecond: 1.0,
-    drainIncreasePerCycle: 0.15,
+    drainIncreasePerCycle: 0.05,
     huntRestore: 10,
     multiHuntRestore: 22,
     multiHuntRange: 180,
-    sunDamagePerSecond: 8.0,
+    sunDamagePerSecond: 6.0,
   },
 
   // Day/Night cycle
   dayNight: {
-    nightDuration: 15000,
-    dawnDuration: 3000,
-    dayDuration: 5000,
+    nightDuration: 20000,
+    dawnDuration: 4000,
+    dayDuration: 10000,
     duskDuration: 3000,
   },
 
   // Villagers
   villagers: {
-    count: 15,
+    count: 35,
     speed: 35,
     wanderRadius: 120,
     respawnTime: 10000,
@@ -104,7 +104,7 @@ export const GameSettings = {
 
   // Archers
   archers: {
-    count: 6,
+    count: 10,
     speed: 45,
     wanderRadius: 150,
     respawnTime: 15000,
@@ -126,10 +126,51 @@ export const GameSettings = {
     auraDamagePerSecond: 15,
   },
 
+  // God Mode (power-up)
+  godMode: {
+    duration: 10000, // ms
+    cooldown: 60000, // ms — cooldown after god mode ends
+    drainMultiplier: 0.15, // blood drain ×0.15 while active
+    killRange: 80, // auto-kill archers/monks within this range
+    killScoreArcher: 20,
+    killScoreMonk: 40,
+    speedMultiplier: 1.6,
+  },
+
+  // Coins (collectible currency)
+  coins: {
+    count: 25, // initial coins on map
+    respawnTime: 30000, // ms before a coin respawns
+    collectRange: 35, // px proximity to collect
+    scoreValue: 5, // score per coin
+    reviveCost: 10, // coins to revive
+  },
+
   // Scoring
   scoring: {
     perVillager: 10,
     perCycle: 50,
+  },
+
+  // Shop items
+  shop: {
+    bloodVial: {
+      cost: 5,
+      restoreAmount: 35, // blood points restored
+    },
+    shadowCloak: {
+      cost: 10,
+      duration: 60000, // 1 minute sun immunity
+    },
+    eternalNight: {
+      cost: 30,
+      nightBonusMs: 15000, // extra night duration (permanent)
+    },
+    speedPotion: {
+      cost: 8,
+      duration: 60000, // 1 minute
+      speedMultiplier: 1.2, // +20% speed
+    },
   },
 };
 

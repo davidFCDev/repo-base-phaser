@@ -19,7 +19,6 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@farcade/game-sdk": "^0.3.0",
     "@insidethesim/remix-dev": "^1.4.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

@@ -15,6 +15,7 @@ export class Villager {
   private hasGround: (x: number, y: number) => boolean;
   private facing: string = "down";
   private isFleeing: boolean = false;
+  private stuckCounter: number = 0;
   private scaredIcon: Phaser.GameObjects.Text | null = null;
   private scaredTween: Phaser.Tweens.Tween | null = null;
 
@@ -149,19 +150,36 @@ export class Villager {
       if (this.canMoveTo(nextX, nextY)) {
         this.sprite.setVelocity(vx, vy);
         this.updateFacing(dx, dy);
+        this.stuckCounter = 0;
       } else {
-        // Can't go there — pick a new target
+        // Can't go there — stop and pick a new target after a brief pause
         this.sprite.setVelocity(0, 0);
-        this.pickNewWanderTarget();
+        this.stuckCounter++;
+        if (this.stuckCounter >= 3) {
+          this.pickNewWanderTarget();
+          this.wanderTimer = 1 + Math.random() * 2;
+          this.stuckCounter = 0;
+        }
       }
     } else {
       this.sprite.setVelocity(0, 0);
     }
   }
 
-  /** Check if a world position has ground and is not in safe zone. */
+  /** Buffer (px) to keep villagers away from water edges. */
+  private static readonly WATER_MARGIN = 32;
+
+  /** Check if a world position has ground (with margin from edges) and is not in safe zone. */
   private canMoveTo(x: number, y: number): boolean {
-    return this.hasGround(x, y) && !this.isSafeZone(x, y);
+    if (this.isSafeZone(x, y)) return false;
+    const m = Villager.WATER_MARGIN;
+    return (
+      this.hasGround(x, y) &&
+      this.hasGround(x - m, y) &&
+      this.hasGround(x + m, y) &&
+      this.hasGround(x, y - m) &&
+      this.hasGround(x, y + m)
+    );
   }
 
   private updateFacing(dx: number, dy: number): void {
@@ -203,15 +221,34 @@ export class Villager {
     const nextX = this.sprite.x + vx * dt;
     const nextY = this.sprite.y + vy * dt;
     if (!this.canMoveTo(nextX, nextY)) {
-      // Try perpendicular directions
       const canX = this.canMoveTo(this.sprite.x + vx * dt, this.sprite.y);
       const canY = this.canMoveTo(this.sprite.x, this.sprite.y + vy * dt);
-      vx = canX ? vx : 0;
-      vy = canY ? vy : 0;
+      if (!canX && !canY) {
+        // Fully blocked — try perpendicular escape
+        const perpVx = -vy;
+        const perpVy = vx;
+        if (
+          this.canMoveTo(
+            this.sprite.x + perpVx * dt,
+            this.sprite.y + perpVy * dt,
+          )
+        ) {
+          vx = perpVx;
+          vy = perpVy;
+        } else {
+          vx = 0;
+          vy = 0;
+        }
+      } else {
+        vx = canX ? vx : 0;
+        vy = canY ? vy : 0;
+      }
     }
 
     this.sprite.setVelocity(vx, vy);
-    this.updateFacing(dx, dy);
+    if (vx !== 0 || vy !== 0) {
+      this.updateFacing(vx, vy);
+    }
 
     // Speed up animation when fleeing
     if (this.sprite.anims.currentAnim) {
@@ -223,7 +260,7 @@ export class Villager {
     if (this.isFleeing) {
       // Update position of existing icon
       if (this.scaredIcon) {
-        this.scaredIcon.setPosition(this.sprite.x, this.sprite.y - 30);
+        this.scaredIcon.setPosition(this.sprite.x, this.sprite.y - 46);
         this.scaredIcon.setDepth(this.sprite.y + 1);
       }
       return;
@@ -232,7 +269,7 @@ export class Villager {
 
     // "!" floating icon above head
     this.scaredIcon = this.scene.add
-      .text(this.sprite.x, this.sprite.y - 30, "!", {
+      .text(this.sprite.x, this.sprite.y - 46, "!", {
         fontFamily: "'Creepster', cursive",
         fontSize: "24px",
         color: "#ffcc00",
@@ -348,17 +385,9 @@ export class Villager {
   private pickNewWanderTarget(): void {
     const radius = GameSettings.villagers.wanderRadius;
     for (let attempt = 0; attempt < 10; attempt++) {
-      const tx = Phaser.Math.Clamp(
-        this.homePosition.x + (Math.random() - 0.5) * radius * 2,
-        50,
-        GameSettings.world.width - 50,
-      );
-      const ty = Phaser.Math.Clamp(
-        this.homePosition.y + (Math.random() - 0.5) * radius * 2,
-        50,
-        GameSettings.world.height - 50,
-      );
-      if (!this.isSafeZone(tx, ty) && this.hasGround(tx, ty)) {
+      const tx = this.homePosition.x + (Math.random() - 0.5) * radius * 2;
+      const ty = this.homePosition.y + (Math.random() - 0.5) * radius * 2;
+      if (this.canMoveTo(tx, ty)) {
         this.wanderTarget = { x: tx, y: ty };
         return;
       }

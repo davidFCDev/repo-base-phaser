@@ -72,7 +72,11 @@ export class Archer {
     }
   }
 
-  update(dt: number, playerPos: { x: number; y: number }): void {
+  update(
+    dt: number,
+    playerPos: { x: number; y: number },
+    playerInSafe: boolean = false,
+  ): void {
     if (!this.alive) return;
 
     // Update arrows
@@ -110,8 +114,20 @@ export class Archer {
       const awayY = this.sprite.y - this.homePosition.y;
       const aDist = Math.sqrt(awayX * awayX + awayY * awayY) || 1;
       const speed = GameSettings.archers.speed * 1.5;
-      this.sprite.setVelocity((awayX / aDist) * speed, (awayY / aDist) * speed);
+      const vx = (awayX / aDist) * speed;
+      const vy = (awayY / aDist) * speed;
+      if (this.canMoveTo(this.sprite.x + vx * dt, this.sprite.y + vy * dt)) {
+        this.sprite.setVelocity(vx, vy);
+      } else {
+        this.sprite.setVelocity(0, 0);
+      }
       this.playWalkAnim(awayX, awayY);
+      return;
+    }
+
+    // If player is in safe zone, don’t engage — just wander
+    if (playerInSafe) {
+      this.doWander(dt);
       return;
     }
 
@@ -140,7 +156,13 @@ export class Archer {
         const dy = this.sprite.y - playerPos.y;
         const d = Math.sqrt(dx * dx + dy * dy) || 1;
         const speed = GameSettings.archers.speed;
-        this.sprite.setVelocity((dx / d) * speed, (dy / d) * speed);
+        const vx = (dx / d) * speed;
+        const vy = (dy / d) * speed;
+        if (this.canMoveTo(this.sprite.x + vx * dt, this.sprite.y + vy * dt)) {
+          this.sprite.setVelocity(vx, vy);
+        } else {
+          this.sprite.setVelocity(0, 0);
+        }
         this.playWalkAnim(dx, dy);
       } else if (distToPlayer > idealDist + 20) {
         // Too far, approach
@@ -148,7 +170,13 @@ export class Archer {
         const dy = playerPos.y - this.sprite.y;
         const d = Math.sqrt(dx * dx + dy * dy) || 1;
         const speed = GameSettings.archers.speed;
-        this.sprite.setVelocity((dx / d) * speed, (dy / d) * speed);
+        const vx = (dx / d) * speed;
+        const vy = (dy / d) * speed;
+        if (this.canMoveTo(this.sprite.x + vx * dt, this.sprite.y + vy * dt)) {
+          this.sprite.setVelocity(vx, vy);
+        } else {
+          this.sprite.setVelocity(0, 0);
+        }
         this.playWalkAnim(dx, dy);
       } else {
         // Good range, stop and face player
@@ -162,6 +190,23 @@ export class Archer {
     }
 
     // Wander
+    this.doWander(dt);
+  }
+
+  /** Check ground with margin so NPCs stay away from water edges. */
+  private canMoveTo(x: number, y: number): boolean {
+    const m = 28;
+    return (
+      this.hasGround(x, y) &&
+      this.hasGround(x - m, y) &&
+      this.hasGround(x + m, y) &&
+      this.hasGround(x, y - m) &&
+      this.hasGround(x, y + m) &&
+      !this.isSafeZone(x, y)
+    );
+  }
+
+  private doWander(dt: number): void {
     this.wanderTimer -= dt;
     if (this.wanderTimer <= 0) {
       this.pickNewWanderTarget();
@@ -174,8 +219,17 @@ export class Archer {
 
     if (dist > 8) {
       const speed = GameSettings.archers.speed;
-      this.sprite.setVelocity((dx / dist) * speed, (dy / dist) * speed);
-      this.playWalkAnim(dx, dy);
+      const vx = (dx / dist) * speed;
+      const vy = (dy / dist) * speed;
+      const nextX = this.sprite.x + vx * dt;
+      const nextY = this.sprite.y + vy * dt;
+      if (this.canMoveTo(nextX, nextY)) {
+        this.sprite.setVelocity(vx, vy);
+        this.playWalkAnim(dx, dy);
+      } else {
+        this.sprite.setVelocity(0, 0);
+        this.pickNewWanderTarget();
+      }
     } else {
       this.sprite.setVelocity(0, 0);
     }
@@ -305,7 +359,7 @@ export class Archer {
     for (let attempt = 0; attempt < 10; attempt++) {
       const tx = this.homePosition.x + (Math.random() - 0.5) * radius * 2;
       const ty = this.homePosition.y + (Math.random() - 0.5) * radius * 2;
-      if (!this.isSafeZone(tx, ty) && this.hasGround(tx, ty)) {
+      if (this.canMoveTo(tx, ty)) {
         this.wanderTarget = { x: tx, y: ty };
         return;
       }

@@ -70,7 +70,11 @@ export class Monk {
     }
   }
 
-  update(dt: number, playerPos: { x: number; y: number }): void {
+  update(
+    dt: number,
+    playerPos: { x: number; y: number },
+    playerInSafe: boolean = false,
+  ): void {
     // Shadow and depth
     this.shadow.setPosition(this.sprite.x, this.sprite.y + 12);
     this.shadow.setDepth(this.sprite.y - 1);
@@ -86,8 +90,21 @@ export class Monk {
       const awayY = this.sprite.y - this.homePosition.y;
       const aDist = Math.sqrt(awayX * awayX + awayY * awayY) || 1;
       const speed = GameSettings.monks.chaseSpeed;
-      this.sprite.setVelocity((awayX / aDist) * speed, (awayY / aDist) * speed);
+      const vx = (awayX / aDist) * speed;
+      const vy = (awayY / aDist) * speed;
+      if (this.canMoveTo(this.sprite.x + vx * dt, this.sprite.y + vy * dt)) {
+        this.sprite.setVelocity(vx, vy);
+      } else {
+        this.sprite.setVelocity(0, 0);
+      }
       this.playWalkAnim(awayX, awayY);
+      return;
+    }
+
+    // If player is in safe zone, don't chase — just wander
+    if (playerInSafe) {
+      this.isChasing = false;
+      this.doWander(dt);
       return;
     }
 
@@ -108,10 +125,8 @@ export class Monk {
       const vx = (dx / d) * speed;
       const vy = (dy / d) * speed;
 
-      // Check if next position is valid
-      const nextX = this.sprite.x + vx * dt;
-      const nextY = this.sprite.y + vy * dt;
-      if (this.hasGround(nextX, nextY) && !this.isSafeZone(nextX, nextY)) {
+      // Check if next position is valid (with margin)
+      if (this.canMoveTo(this.sprite.x + vx * dt, this.sprite.y + vy * dt)) {
         this.sprite.setVelocity(vx, vy);
       } else {
         this.sprite.setVelocity(0, 0);
@@ -123,6 +138,23 @@ export class Monk {
     this.isChasing = false;
 
     // Wander
+    this.doWander(dt);
+  }
+
+  /** Check ground with margin so NPCs stay away from water edges. */
+  private canMoveTo(x: number, y: number): boolean {
+    const m = 28;
+    return (
+      this.hasGround(x, y) &&
+      this.hasGround(x - m, y) &&
+      this.hasGround(x + m, y) &&
+      this.hasGround(x, y - m) &&
+      this.hasGround(x, y + m) &&
+      !this.isSafeZone(x, y)
+    );
+  }
+
+  private doWander(dt: number): void {
     this.wanderTimer -= dt;
     if (this.wanderTimer <= 0) {
       this.pickNewWanderTarget();
@@ -139,7 +171,7 @@ export class Monk {
       const vy = (dy / dist) * speed;
       const nextX = this.sprite.x + vx * dt;
       const nextY = this.sprite.y + vy * dt;
-      if (this.hasGround(nextX, nextY) && !this.isSafeZone(nextX, nextY)) {
+      if (this.canMoveTo(nextX, nextY)) {
         this.sprite.setVelocity(vx, vy);
         this.playWalkAnim(dx, dy);
       } else {
@@ -165,20 +197,22 @@ export class Monk {
     this.auraGfx.clear();
     this.auraGfx.setPosition(this.sprite.x, this.sprite.y);
     const r = GameSettings.monks.auraRadius;
-    const pulse = Math.sin(this.auraPulse) * 0.12 + 0.88;
-    const radius = r * pulse;
 
     // Outer soft glow
-    this.auraGfx.fillStyle(0xffffaa, 0.08);
-    this.auraGfx.fillCircle(0, 0, radius * 1.3);
+    this.auraGfx.fillStyle(0xffffaa, 0.3);
+    this.auraGfx.fillCircle(0, 0, r * 1.3);
 
     // Middle glow
-    this.auraGfx.fillStyle(0xffdd66, 0.12);
-    this.auraGfx.fillCircle(0, 0, radius);
+    this.auraGfx.fillStyle(0xffdd44, 0.45);
+    this.auraGfx.fillCircle(0, 0, r);
 
     // Inner bright core
-    this.auraGfx.fillStyle(0xffeeaa, 0.18);
-    this.auraGfx.fillCircle(0, 0, radius * 0.5);
+    this.auraGfx.fillStyle(0xffeeaa, 0.6);
+    this.auraGfx.fillCircle(0, 0, r * 0.5);
+
+    // Ring outline
+    this.auraGfx.lineStyle(3, 0xffcc00, 0.55);
+    this.auraGfx.strokeCircle(0, 0, r);
 
     this.auraGfx.setDepth(this.sprite.y - 2);
   }
@@ -208,12 +242,68 @@ export class Monk {
       const dist = Math.random() * radius;
       const x = this.homePosition.x + Math.cos(angle) * dist;
       const y = this.homePosition.y + Math.sin(angle) * dist;
-      if (this.hasGround(x, y) && !this.isSafeZone(x, y)) {
+      if (this.canMoveTo(x, y)) {
         this.wanderTarget = { x, y };
         return;
       }
     }
     this.wanderTarget = { x: this.homePosition.x, y: this.homePosition.y };
+  }
+
+  isAlive(): boolean {
+    return this.sprite?.active ?? false;
+  }
+
+  die(): void {
+    this.sprite.setVelocity(0, 0);
+    this.auraGfx.clear();
+
+    this.scene.tweens.add({
+      targets: [this.sprite, this.shadow],
+      alpha: 0,
+      duration: 300,
+      ease: "Power2",
+      onComplete: () => {
+        this.sprite.setVisible(false);
+        this.sprite.setActive(false);
+        if (this.sprite.body) {
+          (this.sprite.body as Phaser.Physics.Arcade.Body).enable = false;
+        }
+        this.shadow.setVisible(false);
+        this.auraGfx.setVisible(false);
+      },
+    });
+
+    // Respawn after a delay
+    this.scene.time.delayedCall(15000, () => {
+      this.respawn();
+    });
+  }
+
+  private respawn(): void {
+    let newX = this.homePosition.x;
+    let newY = this.homePosition.y;
+    for (let attempt = 0; attempt < 15; attempt++) {
+      const offX = (Math.random() - 0.5) * 300;
+      const offY = (Math.random() - 0.5) * 300;
+      newX = this.homePosition.x + offX;
+      newY = this.homePosition.y + offY;
+      if (!this.isSafeZone(newX, newY) && this.hasGround(newX, newY)) break;
+    }
+
+    this.sprite.setPosition(newX, newY);
+    this.sprite.setAlpha(1);
+    this.sprite.setVisible(true);
+    this.sprite.setActive(true);
+    this.sprite.clearTint();
+    if (this.sprite.body) {
+      (this.sprite.body as Phaser.Physics.Arcade.Body).enable = true;
+    }
+    this.shadow.setAlpha(1);
+    this.shadow.setVisible(true);
+    this.auraGfx.setVisible(true);
+    this.isChasing = false;
+    this.wanderTimer = 0;
   }
 
   destroy(): void {

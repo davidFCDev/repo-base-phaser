@@ -35,7 +35,7 @@ export class DayNightCycle {
       cam.width * 2,
       cam.height * 2,
       0x050520,
-      0.7,
+      0.5,
     );
     this.overlay.setScrollFactor(0);
     this.overlay.setDepth(900);
@@ -61,15 +61,17 @@ export class DayNightCycle {
       const grad = ctx.createRadialGradient(
         cx,
         cy,
-        radius * 0.35,
+        radius * 0.18,
         cx,
         cy,
         radius,
       );
       grad.addColorStop(0, "rgba(0,0,0,0)");
-      grad.addColorStop(0.5, "rgba(0,0,0,0.15)");
-      grad.addColorStop(0.75, "rgba(0,0,0,0.5)");
-      grad.addColorStop(1, "rgba(0,0,0,0.9)");
+      grad.addColorStop(0.25, "rgba(0,0,0,0.1)");
+      grad.addColorStop(0.45, "rgba(0,0,0,0.35)");
+      grad.addColorStop(0.65, "rgba(0,0,0,0.65)");
+      grad.addColorStop(0.85, "rgba(0,0,0,0.88)");
+      grad.addColorStop(1, "rgba(0,0,0,0.95)");
 
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, w, h);
@@ -117,7 +119,7 @@ export class DayNightCycle {
     switch (this.currentPhase) {
       case "night":
         color = 0x050520;
-        alpha = 0.7;
+        alpha = 0.5;
         break;
 
       case "dawn": {
@@ -127,7 +129,7 @@ export class DayNightCycle {
         const g = Math.round(5 + p * 80);
         const b = Math.round(32 - p * 32);
         color = (r << 16) | (g << 8) | b;
-        alpha = 0.7 - p * 0.55;
+        alpha = 0.5 - p * 0.35;
         break;
       }
 
@@ -143,7 +145,7 @@ export class DayNightCycle {
         const g = Math.round(255 - p * 250);
         const b = Math.round(204 - p * 172);
         color = (r << 16) | (g << 8) | b;
-        alpha = 0.12 + p * 0.58;
+        alpha = 0.12 + p * 0.38;
         break;
       }
     }
@@ -210,6 +212,21 @@ export class DayNightCycle {
     return this.elapsed / this.cycleLength;
   }
 
+  /** Milliseconds remaining in the current phase. */
+  getPhaseRemainingMs(): number {
+    const cfg = GameSettings.dayNight;
+    switch (this.currentPhase) {
+      case "night":
+        return this.nightEnd - this.elapsed;
+      case "dawn":
+        return this.dawnEnd - this.elapsed;
+      case "day":
+        return this.dayEnd - this.elapsed;
+      case "dusk":
+        return this.cycleLength - this.elapsed;
+    }
+  }
+
   isDangerous(): boolean {
     return this.currentPhase === "day" || this.currentPhase === "dawn";
   }
@@ -229,6 +246,15 @@ export class DayNightCycle {
     this.currentPhase = "night";
     this.onPhaseChange?.("night");
     this.updateVisual();
+  }
+
+  /** Extend night duration permanently (recalculates phase boundaries). */
+  extendNight(bonusMs: number): void {
+    const cfg = GameSettings.dayNight;
+    this.nightEnd = cfg.nightDuration + bonusMs;
+    this.dawnEnd = this.nightEnd + cfg.dawnDuration;
+    this.dayEnd = this.dawnEnd + cfg.dayDuration;
+    this.cycleLength = this.dayEnd + cfg.duskDuration;
   }
 
   destroy(): void {

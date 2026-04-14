@@ -6,22 +6,24 @@ export class HUD {
   private scene: Phaser.Scene;
   private blood: BloodSystem;
   private dayNight: DayNightCycle;
-  private getScore: () => number;
 
   // Blood bar (centered, gothic)
   private barContainer: Phaser.GameObjects.Graphics;
   private barFillGfx: Phaser.GameObjects.Graphics;
-  private dropIcon: Phaser.GameObjects.Graphics;
 
   // Day/Night badge (circular)
   private badgeGfx: Phaser.GameObjects.Graphics;
   private badgeIcon: Phaser.GameObjects.Graphics;
 
-  // Score
-  private scoreText: Phaser.GameObjects.Text;
+  // Kills + Coins row
+  private killsText: Phaser.GameObjects.Text;
+  private coinText: Phaser.GameObjects.Text;
 
   // Day counter
   private dayText: Phaser.GameObjects.Text;
+
+  // Phase timer (below badge)
+  private phaseTimerText: Phaser.GameObjects.Text;
 
   // Castle compass
   private compassGfx: Phaser.GameObjects.Graphics;
@@ -32,11 +34,14 @@ export class HUD {
   private warningOverlay: Phaser.GameObjects.Rectangle;
   private warningTween?: Phaser.Tweens.Tween;
 
-  // Blood bar dimensions — centered (with space for drop icon)
+  // Day warning text
+  private dayWarningText: Phaser.GameObjects.Text;
+
+  // Blood bar dimensions — centered
   private barW = 280;
   private barH = 36;
   private barX: number;
-  private barY = GameSettings.safeArea.top + 14;
+  private barY: number;
 
   // Badge dimensions
   private badgeR = 32;
@@ -47,18 +52,22 @@ export class HUD {
     scene: Phaser.Scene,
     blood: BloodSystem,
     dayNight: DayNightCycle,
-    getScore: () => number,
   ) {
     this.scene = scene;
     this.blood = blood;
     this.dayNight = dayNight;
-    this.getScore = getScore;
+
+    // Always push HUD to the top of the screen
+    this.barY = 24;
+
+    const dayFontSize = "34px";
+    const compassFontSize = "16px";
 
     const depth = 1100;
     const W = GameSettings.canvas.width;
 
-    // Center the bar (offset right a bit to leave space for drop icon)
-    this.barX = (W - this.barW) / 2 + 20;
+    // Center the bar
+    this.barX = (W - this.barW) / 2;
 
     // Badge position (right side)
     this.badgeCx = W - 55;
@@ -72,11 +81,6 @@ export class HUD {
     this.barFillGfx = scene.add.graphics();
     this.barFillGfx.setScrollFactor(0).setDepth(depth + 1);
 
-    // Blood drop icon to the left of the bar
-    this.dropIcon = scene.add.graphics();
-    this.dropIcon.setScrollFactor(0).setDepth(depth + 2);
-    this.drawDropIcon(0xcc0000);
-
     // ─── Day/Night badge ───
     this.badgeGfx = scene.add.graphics();
     this.badgeGfx.setScrollFactor(0).setDepth(depth);
@@ -84,15 +88,27 @@ export class HUD {
     this.badgeIcon = scene.add.graphics();
     this.badgeIcon.setScrollFactor(0).setDepth(depth + 1);
 
-    // ─── Score ───
-    this.scoreText = scene.add
-      .text(W / 2, this.barY + this.barH + 8, "0", {
+    // ─── Kills + Coins row below bar ───
+    const rowY = this.barY + this.barH + 8;
+    this.killsText = scene.add
+      .text(W / 2 - 60, rowY, "💀 0", {
         fontFamily: "'Creepster', cursive",
-        fontSize: "30px",
-        color: "#ffffff",
-        fontStyle: "bold",
+        fontSize: "28px",
+        color: "#dddddd",
         stroke: "#000000",
-        strokeThickness: 5,
+        strokeThickness: 4,
+      })
+      .setOrigin(0.5, 0)
+      .setScrollFactor(0)
+      .setDepth(depth);
+
+    this.coinText = scene.add
+      .text(W / 2 + 60, rowY, "🩸 0", {
+        fontFamily: "'Creepster', cursive",
+        fontSize: "28px",
+        color: "#ff6666",
+        stroke: "#000000",
+        strokeThickness: 4,
       })
       .setOrigin(0.5, 0)
       .setScrollFactor(0)
@@ -102,7 +118,7 @@ export class HUD {
     this.dayText = scene.add
       .text(55, this.barY + this.barH / 2, "Day 1", {
         fontFamily: "'Creepster', cursive",
-        fontSize: "34px",
+        fontSize: dayFontSize,
         color: "#ccccff",
         stroke: "#000000",
         strokeThickness: 6,
@@ -111,9 +127,23 @@ export class HUD {
       .setScrollFactor(0)
       .setDepth(depth);
 
+    // ─── Phase timer (below badge) ───
+    this.phaseTimerText = scene.add
+      .text(this.badgeCx, this.badgeCy + this.badgeR + 10, "", {
+        fontFamily: "'Creepster', cursive",
+        fontSize: "24px",
+        color: "#aaaacc",
+        stroke: "#000000",
+        strokeThickness: 4,
+        align: "center",
+      })
+      .setOrigin(0.5, 0)
+      .setScrollFactor(0)
+      .setDepth(depth);
+
     // ─── Castle compass ───
     const compassCx = W - 55;
-    const compassCy = this.barY + this.barH + 52;
+    const compassCy = this.barY + this.barH + 80;
 
     this.compassGfx = scene.add.graphics();
     this.compassGfx.setScrollFactor(0).setDepth(depth);
@@ -124,7 +154,7 @@ export class HUD {
     this.compassDist = scene.add
       .text(compassCx, compassCy + 28, "", {
         fontFamily: "'Creepster', cursive",
-        fontSize: "16px",
+        fontSize: compassFontSize,
         color: "#aaaacc",
         stroke: "#000000",
         strokeThickness: 3,
@@ -140,6 +170,21 @@ export class HUD {
       .rectangle(W / 2, H / 2, W, H, 0xff4400, 0)
       .setScrollFactor(0)
       .setDepth(899);
+
+    // ─── Day warning text ───
+    this.dayWarningText = scene.add
+      .text(W / 2, H / 2, "Run home!", {
+        fontFamily: "'Creepster', cursive",
+        fontSize: "40px",
+        color: "#ffcc44",
+        stroke: "#000000",
+        strokeThickness: 6,
+        align: "center",
+      })
+      .setOrigin(0.5, 0.5)
+      .setScrollFactor(0)
+      .setDepth(1200)
+      .setAlpha(0);
   }
 
   /** Draw the gothic bar frame (ornamental border). */
@@ -214,11 +259,29 @@ export class HUD {
     // Phase badge
     this.drawDayBadge();
 
-    // Score
-    this.scoreText.setText(`${this.getScore()}`);
+    // Phase timer
+    const phase = this.dayNight.getPhase();
+    const rem = this.dayNight.getPhaseRemainingMs();
+    const secs = Math.max(0, Math.ceil(rem / 1000));
+    let timerLabel = "";
+    let timerColor = "#aaaacc";
+    if (phase === "night") {
+      timerLabel = `☽ ${secs}s`;
+      timerColor = "#8888cc";
+    } else if (phase === "dawn") {
+      timerLabel = `☀ ${secs}s`;
+      timerColor = "#ffaa44";
+    } else if (phase === "day") {
+      timerLabel = `☀ ${secs}s`;
+      timerColor = "#ffdd44";
+    } else {
+      timerLabel = `☽ ${secs}s`;
+      timerColor = "#aa88cc";
+    }
+    this.phaseTimerText.setText(timerLabel);
+    this.phaseTimerText.setColor(timerColor);
 
     // Warning overlay during dawn
-    const phase = this.dayNight.getPhase();
     if (phase === "dawn") {
       const p = this.dayNight.getPhaseProgress();
       const pulse = Math.sin(this.scene.time.now * 0.006) * 0.5 + 0.5;
@@ -325,30 +388,6 @@ export class HUD {
       g.fillStyle(color, alpha * 0.7);
       g.fillRect(edgeX - 3, y + h - 1, 3, dripH);
     }
-
-    // Update drop icon color based on blood level
-    if (percent <= 0.25) {
-      this.drawDropIcon(0xff0000);
-    } else {
-      this.drawDropIcon(0xcc0000);
-    }
-  }
-
-  /** Draw a blood drop icon to the left of the bar. */
-  private drawDropIcon(color: number): void {
-    const g = this.dropIcon;
-    g.clear();
-    const dx = this.barX - 28;
-    const dy = this.barY + this.barH / 2;
-
-    // Drop shape using a circle + triangle (bigger)
-    g.fillStyle(color, 1);
-    g.fillCircle(dx, dy + 5, 11);
-    g.fillTriangle(dx, dy - 16, dx - 8, dy + 2, dx + 8, dy + 2);
-
-    // Highlight
-    g.fillStyle(0xffffff, 0.3);
-    g.fillCircle(dx - 3, dy + 2, 4);
   }
 
   private drawDayBadge(): void {
@@ -548,31 +587,26 @@ export class HUD {
     g.lineStyle(2, 0x44ff88, 0.8);
     g.strokeCircle(cx, cy, r + 2);
 
-    // Arrow inside circle pointing toward castle
-    const arrowLen = r * 0.7;
-    const tipIX = cx + Math.cos(angle) * arrowLen;
-    const tipIY = cy + Math.sin(angle) * arrowLen;
-    const tailIX = cx - Math.cos(angle) * arrowLen * 0.5;
-    const tailIY = cy - Math.sin(angle) * arrowLen * 0.5;
-    // Shaft
-    g.lineStyle(3, 0x44ff88, 0.9);
-    g.lineBetween(tailIX, tailIY, tipIX, tipIY);
-    // Arrowhead
-    const headLen = 8;
-    const headAngle = 0.45;
+    // House icon inside circle
+    const s = r * 0.065; // scale factor based on radius
+    // Roof
     g.fillStyle(0x44ff88, 0.9);
-    g.beginPath();
-    g.moveTo(tipIX, tipIY);
-    g.lineTo(
-      tipIX - Math.cos(angle - headAngle) * headLen,
-      tipIY - Math.sin(angle - headAngle) * headLen,
+    g.fillTriangle(
+      cx - 12 * s,
+      cy - 2 * s,
+      cx,
+      cy - 12 * s,
+      cx + 12 * s,
+      cy - 2 * s,
     );
-    g.lineTo(
-      tipIX - Math.cos(angle + headAngle) * headLen,
-      tipIY - Math.sin(angle + headAngle) * headLen,
-    );
-    g.closePath();
-    g.fillPath();
+    // Body
+    g.fillRect(cx - 9 * s, cy - 2 * s, 18 * s, 12 * s);
+    // Door
+    g.fillStyle(0x111122, 0.9);
+    g.fillRect(cx - 3 * s, cy + 3 * s, 6 * s, 7 * s);
+    // Window
+    g.fillStyle(0xffffaa, 0.6);
+    g.fillRect(cx + 3 * s, cy, 4 * s, 4 * s);
 
     // Distance text below the circle
     const dist = Math.sqrt(dx * dx + dy * dy);
@@ -598,6 +632,37 @@ export class HUD {
     });
   }
 
+  showDayWarning(): void {
+    this.dayWarningText.setAlpha(0).setScale(0.6);
+    this.scene.tweens.add({
+      targets: this.dayWarningText,
+      alpha: 1,
+      scale: 1,
+      duration: 400,
+      ease: "Back.easeOut",
+      onComplete: () => {
+        this.scene.tweens.add({
+          targets: this.dayWarningText,
+          alpha: 0,
+          scale: 1.1,
+          duration: 600,
+          delay: 1200,
+          ease: "Sine.easeIn",
+        });
+      },
+    });
+  }
+
+  /** Update coin counter. */
+  setCoins(amount: number): void {
+    this.coinText.setText(`🩸 ${amount}`);
+  }
+
+  /** Update kills counter. */
+  setKills(amount: number): void {
+    this.killsText.setText(`💀 ${amount}`);
+  }
+
   /** Update the day counter display. */
   setDay(dayNumber: number, phase: string): void {
     const isNight = phase === "night" || phase === "dusk";
@@ -610,28 +675,32 @@ export class HUD {
     return [
       this.barContainer,
       this.barFillGfx,
-      this.dropIcon,
       this.badgeGfx,
       this.badgeIcon,
-      this.scoreText,
+      this.killsText,
+      this.coinText,
       this.dayText,
+      this.phaseTimerText,
       this.compassGfx,
       this.compassArrow,
       this.compassDist,
       this.warningOverlay,
+      this.dayWarningText,
     ];
   }
 
   destroy(): void {
     this.barContainer.destroy();
     this.barFillGfx.destroy();
-    this.dropIcon.destroy();
     this.badgeGfx.destroy();
     this.badgeIcon.destroy();
-    this.scoreText.destroy();
+    this.killsText.destroy();
+    this.coinText.destroy();
     this.dayText.destroy();
+    this.phaseTimerText.destroy();
     this.compassGfx.destroy();
     this.compassArrow.destroy();
+    this.dayWarningText.destroy();
     this.compassDist.destroy();
     this.warningOverlay.destroy();
   }

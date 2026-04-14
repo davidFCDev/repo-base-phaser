@@ -13,8 +13,10 @@ export class PreloadScene extends PreloadSceneBase {
       "map",
       "https://lqy3lriiybxcejon.public.blob.vercel-storage.com/169e4210-4770-452d-8ff1-e104cc0e82b6/finalmap2-AVGu8yEeCm-s3hUNBPh0bIZ3ilBcOFAnJRRp1Q9M9.json?U717",
     );
-    this.load.image("tiles", "assets/tileset.png");
-    this.load.image("dungeon", "assets/dungeon.png");
+    this.load.image(
+      "tiles",
+      "https://lqy3lriiybxcejon.public.blob.vercel-storage.com/169e4210-4770-452d-8ff1-e104cc0e82b6/tileset-S8ylBNxsb8-fejASwwrYEBBGz9ZXOCOxb6uWnV2Kd.webp?UCcw",
+    );
 
     // Dracula spritesheets (256×256 per frame, 5 cols × 2 rows)
     const sc = { frameWidth: 256, frameHeight: 256 };
@@ -108,6 +110,19 @@ export class PreloadScene extends PreloadSceneBase {
       "villager-walk-up",
       "https://lqy3lriiybxcejon.public.blob.vercel-storage.com/169e4210-4770-452d-8ff1-e104cc0e82b6/walk-up-TFBgQz8MUQ-5lNXuoy1okSd7x0BiHeORbSexIU2lB.webp?BcLg",
       sc,
+    );
+
+    // Music (only track 1 in preload; track 2 lazy-loaded in GameScene)
+    this.load.audio(
+      "music1",
+      "https://lqy3lriiybxcejon.public.blob.vercel-storage.com/169e4210-4770-452d-8ff1-e104cc0e82b6/music1-flhaHhDtoz-QU1LOGV58hE0kQdTIWU0hOtwwzJIYa.mp3?RihN",
+    );
+
+    // God Mode transformation spritesheet (5×5 grid = 25 frames, 256×256 each)
+    this.load.spritesheet(
+      "dracula-god",
+      "https://lqy3lriiybxcejon.public.blob.vercel-storage.com/169e4210-4770-452d-8ff1-e104cc0e82b6/dracula_god-MOdXAt61cp-g9KvUnpnRGU1kA0sown5DoB2Kp3fUB.webp?PvsF",
+      { frameWidth: 256, frameHeight: 256 },
     );
   }
 }

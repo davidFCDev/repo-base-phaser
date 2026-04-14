@@ -446,28 +446,6 @@ export class Player {
         onComplete: () => particle.destroy(),
       });
     }
-
-    // Floating blood text
-    const text = this.scene.add
-      .text(x, y - 20, `+${GameSettings.blood.huntRestore}`, {
-        fontFamily: "'Creepster', cursive",
-        fontSize: "18px",
-        color: "#ff3333",
-        fontStyle: "bold",
-        stroke: "#000000",
-        strokeThickness: 2,
-      })
-      .setOrigin(0.5)
-      .setDepth(2000);
-
-    this.scene.tweens.add({
-      targets: text,
-      y: y - 50,
-      alpha: 0,
-      duration: 800,
-      ease: "Power2",
-      onComplete: () => text.destroy(),
-    });
   }
 
   private showMultiKillEffect(count: number): void {
@@ -498,64 +476,6 @@ export class Player {
         onComplete: () => particle.destroy(),
       });
     }
-
-    // Big floating text showing multi-kill bonus
-    const restore = GameSettings.blood.multiHuntRestore;
-    const label = count >= 3 ? "BLOOD FEAST!" : "DOUBLE BITE!";
-    const labelText = this.scene.add
-      .text(x, y - 30, label, {
-        fontFamily: "'Creepster', cursive",
-        fontSize: "36px",
-        color: "#ff2222",
-        stroke: "#220000",
-        strokeThickness: 6,
-      })
-      .setOrigin(0.5)
-      .setDepth(2001)
-      .setScale(0.5);
-
-    // Pop-in scale then float up
-    this.scene.tweens.add({
-      targets: labelText,
-      scaleX: 1.2,
-      scaleY: 1.2,
-      duration: 200,
-      ease: "Back.easeOut",
-      onComplete: () => {
-        this.scene.tweens.add({
-          targets: labelText,
-          y: y - 80,
-          alpha: 0,
-          scaleX: 1.4,
-          scaleY: 1.4,
-          duration: 2000,
-          ease: "Power1",
-          onComplete: () => labelText.destroy(),
-        });
-      },
-    });
-
-    // Blood amount text
-    const bloodText = this.scene.add
-      .text(x, y - 10, `+${restore}`, {
-        fontFamily: "'Creepster', cursive",
-        fontSize: "28px",
-        color: "#ff6644",
-        fontStyle: "bold",
-        stroke: "#000000",
-        strokeThickness: 4,
-      })
-      .setOrigin(0.5)
-      .setDepth(2000);
-
-    this.scene.tweens.add({
-      targets: bloodText,
-      y: y - 55,
-      alpha: 0,
-      duration: 1800,
-      ease: "Power1",
-      onComplete: () => bloodText.destroy(),
-    });
 
     // Camera shake for impact
     this.scene.cameras.main.shake(200, 0.012);
