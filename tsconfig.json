@@ -15,9 +15,8 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
     "typeRoots": ["./node_modules/@types"],
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts"]

@@ -7,7 +7,7 @@ This file provides guidance to Claude Code when working with this Remix game pro
 This is a **Phaser 3 game** built for the **Remix/Farcade platform** (Farcaster mini-apps). The game uses:
 
 - **Phaser 3** for game engine (loaded via CDN)
-- **@farcade/game-sdk** for platform integration (loaded via CDN in production, mocked in dev)
+- **@remix-gg/sdk** for platform integration (loaded via CDN in production, mocked in dev)
 - **@insidethesim/remix-dev** for development tooling and build pipeline
 
 ## Critical Environment Details
@@ -24,20 +24,20 @@ Al subir un juego, una **IA estricta** escanea el `dist/index.html` buscando:
 
 ### CDN-Loaded Libraries (DO NOT import directly)
 
-**Phaser** y **FarcadeSDK** se cargan globalmente vía CDN. NO son dependencias npm que puedas importar.
+**Phaser** y **RemixSDK** se cargan globalmente vía CDN. NO son dependencias npm que puedas importar.
 
 ```typescript
 // ❌ WRONG - El build genera bare imports que el navegador no resuelve
 // La AI de despliegue detecta imports rotos y REEMPLAZA todo el juego
 import Phaser from "phaser";
-import { FarcadeSDK } from "@farcade/game-sdk";
+import { RemixSDK } from "@remix-gg/sdk";
 
 // ✅ CORRECT - Acceder desde el scope global
 const Phaser = (window as any).Phaser;
-const sdk = (window as any).FarcadeSDK;
+const sdk = (window as any).RemixSDK;
 
 // O usar las declaraciones globales de globals.d.ts
-// (Phaser se declara como global, FarcadeSDK en window)
+// (Phaser se declara como global, RemixSDK en window)
 ```
 
 > **¿Por qué `(window as any).Phaser`?** El build de `remix-dev` usa esbuild con `external: ["phaser"]`. Solo reemplaza `require("phaser")` → `window.Phaser` (CJS), pero deja `import * as X from "phaser"` como bare import que el navegador no puede resolver.
@@ -48,7 +48,8 @@ Type definitions are provided in `src/globals.d.ts`:
 declare const Phaser: typeof import("phaser");
 declare global {
   interface Window {
-    FarcadeSDK?: FarcadeSDKType;
+    RemixSDK?: RemixSDKType;
+    FarcadeSDK?: RemixSDKType; // backward-compatible alias
   }
 }
 ```
@@ -133,41 +134,47 @@ this.scoreText = this.add.text(50, 20, "Score: 0", { ... });
 
 > **Tip:** Si el SDK provee `contentSafeAreaInset` vía `gameInfo`, puedes usar ese valor dinámico. Si no, `GameSettings.safeArea.top` es el fallback seguro.
 
-## @farcade/game-sdk API Reference
+## @remix-gg/sdk API Reference (v0.6)
 
-The SDK provides the interface between your game and the Remix/Farcade platform.
+The SDK provides the interface between your game and the Remix platform.
+`window.RemixSDK` is the primary global. `window.FarcadeSDK` is still available as a backward-compatible alias.
 
 ### Initialization Flow
 
-**CRITICAL**: Always await `ready()` before using any SDK features.
-**IMPORTANT**: El paquete `@farcade/game-sdk` expone `window.FarcadeSDK`, **NO** `window.RemixSDK`.
+**CRITICAL**: Always await `ready()` before reading SDK getters.
 
 ```typescript
-// In your main scene's create() or a dedicated init function
 async initializeSDK() {
-  const sdk = (window as any).FarcadeSDK
-  if (!sdk) {
-    // SDK not available (standalone mode)
-    return
+  const sdk = (window as any).RemixSDK
+  if (!sdk) return // SDK not available (standalone mode)
+
+  // Register event listeners BEFORE calling ready()
+  sdk.onPlayAgain(() => this.restartGame())
+  sdk.onToggleMute((data: { isMuted: boolean }) => {
+    this.sound.mute = data.isMuted
+  })
+  sdk.onPurchaseComplete((data: { success: boolean; item?: string }) => {
+    this.checkPurchasedItems()
+  })
+
+  // Initialize — returns GameInfo
+  const gameInfo = await sdk.ready()
+
+  // After ready(), getters are available:
+  // sdk.player    — current Player
+  // sdk.players   — all players (multiplayer)
+  // sdk.gameState — saved state or null
+  // sdk.gameInfo  — full GameInfo object
+  // sdk.purchasedItems — string[]
+  // sdk.inventory — { slug, quantity }[]
+  // sdk.shopItems — ShopItem[]
+
+  // Load saved state
+  if (sdk.gameState) {
+    this.loadState(sdk.gameState)
   }
 
-  // Single player mode
-  const gameInfo = await sdk.singlePlayer.actions.ready()
-
-  // gameInfo contains:
-  // - players: Player[] - all players in the game
-  // - player: Player - the current player
-  // - viewContext: 'full_screen' | 'mini' | etc.
-  // - initialGameState: GameStateEnvelope | null - saved state or null if new game
-
-  // Load saved state if exists
-  if (gameInfo.initialGameState?.gameState) {
-    this.loadState(gameInfo.initialGameState.gameState)
-  }
-
-  // Setup event listeners
-  this.setupSDKListeners()
-  this.restartGame() // Arrancar directamente
+  this.restartGame()
 }
 ```
 
@@ -185,10 +192,10 @@ interface Player {
 ### Single Player API
 
 ```typescript
-const sdk = (window as any).FarcadeSDK;
+const sdk = (window as any).RemixSDK;
 
 // Initialize and get game info
-const gameInfo = await sdk.singlePlayer.actions.ready();
+const gameInfo = await sdk.ready();
 
 // Save game state (persists across sessions)
 sdk.singlePlayer.actions.saveGameState({
@@ -206,49 +213,51 @@ sdk.singlePlayer.actions.gameOver({
 
 // Haptic feedback (mobile vibration)
 sdk.hapticFeedback();
-// Fallback nativo
-if (navigator.vibrate) navigator.vibrate(50);
 ```
 
 > **El juego NO muestra su propia UI de game over.** La plataforma se encarga del overlay con score y "Try Again". Tu código solo necesita llamar `gameOver({ score })` al morir y tener registrado `onPlayAgain()` para reiniciar.
+> **NO usar `navigator.vibrate()`** — usar solo `sdk.hapticFeedback()`.
 
 ### Multiplayer API
 
 ```typescript
-// Initialize multiplayer
-const gameInfo = await window.FarcadeSDK.multiplayer.actions.ready()
+const sdk = (window as any).RemixSDK;
+const gameInfo = await sdk.ready();
 
 // Save and broadcast state to other players
-window.FarcadeSDK.multiplayer.actions.saveGameState({
+sdk.multiplayer.actions.saveGameState({
   gameState: {
     board: [...],
     currentTurn: 'player1',
   },
-  alertUserIds: [otherPlayerId] // Notify specific players
+  alertUserIds: [otherPlayerId]
 })
 
 // Listen for state updates from other players
-window.FarcadeSDK.on('game_state_updated', (envelope) => {
-  if (envelope?.gameState) {
-    this.loadState(envelope.gameState)
+sdk.onGameStateUpdated((data) => {
+  if (data?.gameState) {
+    this.loadState(data.gameState)
   }
 })
 
 // Multiplayer game over
-window.FarcadeSDK.multiplayer.actions.gameOver({
+sdk.multiplayer.actions.gameOver({
   scores: [
     { playerId: '1', score: 100 },
     { playerId: '2', score: 85 },
   ]
 })
+
+// Refute invalid state (anti-cheat)
+sdk.multiplayer.actions.refuteGameState({ gameStateId: id })
 ```
 
 ### Event Listeners
 
-El SDK soporta tanto el patrón `.on()` como métodos directos:
+Usar siempre los métodos tipados (NO el patrón `.on()` genérico):
 
 ```typescript
-const sdk = (window as any).FarcadeSDK;
+const sdk = (window as any).RemixSDK;
 if (!sdk) return;
 
 // Try Again — la plataforma muestra el botón, el SDK llama a este callback
@@ -258,63 +267,49 @@ sdk.onPlayAgain(() => {
 
 // Mute/Unmute desde la plataforma
 sdk.onToggleMute((data: { isMuted: boolean }) => {
-  this.sound.mute = data.isMuted;
+  this.isMuted = data.isMuted;
 });
 
-// Purchase completion
-sdk.onPurchaseComplete(() => {
-  if (sdk.hasItem("reward-id")) {
-    this.unlockFeature();
+// Purchase completion (incluye item slug cuando disponible)
+sdk.onPurchaseComplete((data: { success: boolean; item?: string }) => {
+  if (data.success) {
+    this.checkPurchasedItems();
   }
 });
+
+// State updates (multiplayer)
+sdk.onGameStateUpdated((data: { id: string; gameState: any } | null) => {
+  // ...
+});
+
+// GameInfo updates
+sdk.onGameInfo((data: GameInfo) => {
+  // ...
+});
 ```
 
-También funciona el patrón con `.on()` (compatibilidad):
+### Item / Shop API
 
 ```typescript
-window.FarcadeSDK.on('play_again', () => this.restartGame())
-window.FarcadeSDK.on('toggle_mute', (data: { isMuted: boolean }) => { ... })
-window.FarcadeSDK.on('purchase_complete', (data) => { ... })
-```
+const sdk = (window as any).RemixSDK;
 
-### Purchased Items / Boost Tiers
+// Check ownership (boolean)
+if (sdk.hasItem('double-jump')) { ... }
 
-**IMPORTANT**: The `purchasedItems` array and `hasItem()` contain **reward IDs only**, NOT tier names.
+// Get purchase count (for consumables)
+const lives = sdk.getItemPurchaseCount('extra-life') // 0 if never purchased
 
-```typescript
-// ❌ WRONG - Tier names are NOT in purchasedItems
-if (window.FarcadeSDK.hasItem("tier-1")) {
-} // NEVER works in production
-if (window.FarcadeSDK.hasItem("tier-2")) {
-} // NEVER works in production
-if (window.FarcadeSDK.hasItem("tier-3")) {
-} // NEVER works in production
+// Get inventory (slug + quantity)
+const inventory = sdk.inventory // [{ slug: 'extra-life', quantity: 3 }, ...]
 
-// ✅ CORRECT - Check for specific reward IDs
-if (window.FarcadeSDK.hasItem("double-jump")) {
-  this.player.enableDoubleJump();
-}
-
-if (window.FarcadeSDK.hasItem("speed-boost")) {
-  this.player.speed *= 1.5;
-}
-```
-
-**How Boost Tiers Work:**
-
-1. Users purchase a **tier** (Bronze/Silver/Gold aka tier-1/tier-2/tier-3)
-2. Each tier contains **rewards** configured by the game developer
-3. When purchased, the **reward IDs** (not tier names) are added to `purchasedItems`
-4. Use `hasItem('reward-id')` to check if a player owns that reward
-
-```typescript
-// Get all purchased reward IDs
-const items = window.FarcadeSDK.purchasedItems; // ['double-jump', 'speed-boost', ...]
+// Browse shop items
+const shopItems = sdk.shopItems // ShopItem[]
+const item = sdk.getShopItem('speed-boost') // ShopItem | undefined
 
 // Initiate a purchase (opens platform modal)
-const result = await window.FarcadeSDK.purchase({ item: "tier-1" });
+const result = await sdk.purchase({ item: 'speed-boost' });
 if (result.success) {
-  // Rewards from tier-1 are now in purchasedItems
+  // Item now in purchasedItems / inventory
 }
 ```
 
@@ -427,18 +422,22 @@ export class GameScene extends Phaser.Scene {
   }
 
   private async initializeSDK(): Promise<void> {
-    if (!window.FarcadeSDK) return;
+    const sdk = (window as any).RemixSDK;
+    if (!sdk) return;
 
-    const gameInfo = await window.FarcadeSDK.singlePlayer.actions.ready();
+    // Register listeners BEFORE ready()
+    sdk.onPlayAgain(() => this.restartGame());
+    sdk.onToggleMute(({ isMuted }) => {
+      this.isMuted = isMuted;
+    });
+    sdk.onPurchaseComplete(() => this.updateRewards());
+
+    await sdk.ready();
 
     // Load saved state
-    if (gameInfo.initialGameState?.gameState) {
-      this.loadState(gameInfo.initialGameState.gameState);
+    if (sdk.gameState) {
+      this.loadState(sdk.gameState);
     }
-
-    // Setup event listeners
-    window.FarcadeSDK.on("play_again", () => this.restartGame());
-    window.FarcadeSDK.on("purchase_complete", () => this.updateRewards());
   }
 }
 ```
@@ -448,9 +447,10 @@ export class GameScene extends Phaser.Scene {
 ```typescript
 // Save state through SDK (persists to .remix/current-state.json in dev)
 private saveGameState(): void {
-  if (!window.FarcadeSDK?.singlePlayer?.actions?.saveGameState) return
+  const sdk = (window as any).RemixSDK;
+  if (!sdk) return;
 
-  window.FarcadeSDK.singlePlayer.actions.saveGameState({
+  sdk.singlePlayer.actions.saveGameState({
     gameState: {
       score: this.score,
       level: this.level,
@@ -478,19 +478,25 @@ private loadState(state: any): void {
 
 ```typescript
 private updateRewards(): void {
+  const sdk = (window as any).RemixSDK;
+  if (!sdk) return;
+
   // Check for specific rewards
-  if (window.FarcadeSDK?.hasItem('double-jump')) {
+  if (sdk.hasItem('double-jump')) {
     this.player.doubleJumpEnabled = true
   }
 
-  if (window.FarcadeSDK?.hasItem('speed-boost')) {
+  if (sdk.hasItem('speed-boost')) {
     this.player.speed *= 1.5
   }
 
-  // Or iterate all purchased items
-  const items = window.FarcadeSDK?.purchasedItems || []
-  items.forEach(item => {
-    this.applyReward(item)
+  // Get purchase count for consumables
+  const extraLives = sdk.getItemPurchaseCount('extra-life')
+
+  // Or iterate inventory
+  const inventory = sdk.inventory || []
+  inventory.forEach(({ slug, quantity }) => {
+    this.applyReward(slug, quantity)
   })
 }
 ```
@@ -503,7 +509,7 @@ private updateRewards(): void {
 my-game/
 ├── src/
 │   ├── main.ts              # Entry point - crea Phaser.Game con dimensiones responsive
-│   ├── globals.d.ts         # Type declarations for CDN libraries (Phaser, FarcadeSDK)
+│   ├── globals.d.ts         # Type declarations for CDN libraries (Phaser, RemixSDK)
 │   ├── config/
 │   │   └── GameSettings.ts  # Constantes + getResponsiveDimensions()
 │   ├── scenes/
@@ -717,7 +723,10 @@ private loadGameState(state: any): void {
 }
 
 private saveGameState(): void {
-  window.FarcadeSDK?.singlePlayer.actions.saveGameState({
+  const sdk = (window as any).RemixSDK;
+  if (!sdk) return;
+
+  sdk.singlePlayer.actions.saveGameState({
     gameState: this.getGameState()
   })
 }
@@ -772,27 +781,33 @@ El script limpia referencias a `w3.org` (XML namespaces) y `jcgt.org` (GLSL comm
 
 ```typescript
 // Always guard SDK calls
-if (window.FarcadeSDK?.singlePlayer?.actions?.ready) {
-  const gameInfo = await window.FarcadeSDK.singlePlayer.actions.ready();
+const sdk = (window as any).RemixSDK;
+if (sdk) {
+  const gameInfo = await sdk.ready();
 }
 
 // For hasItem checks
-const hasReward = window.FarcadeSDK?.hasItem("reward-slug") ?? false;
+const sdk = (window as any).RemixSDK;
+const hasReward = sdk?.hasItem("reward-slug") ?? false;
 ```
 
 ### Game Over Flow
 
 ```typescript
 private triggerGameOver(): void {
-  if (!window.FarcadeSDK) return
+  const sdk = (window as any).RemixSDK;
+  if (!sdk) return;
+
+  // Haptic feedback
+  sdk.hapticFeedback();
 
   // Single player
-  window.FarcadeSDK.singlePlayer.actions.gameOver({
+  sdk.singlePlayer.actions.gameOver({
     score: this.score
   })
 
   // Platform shows game over screen
-  // User can tap "Play Again" which triggers 'play_again' event
+  // User can tap "Play Again" which triggers onPlayAgain callback
 }
 ```
 
@@ -821,16 +836,16 @@ Causa: Bare ESM import `from "phaser"` irresolvible en el dist. Usar CDN + `(win
 
 ### Game Over no salta
 
-`window.RemixSDK` es `undefined` — Usar `window.FarcadeSDK` (no RemixSDK).
+Verificar que `window.RemixSDK` existe y que se llama `sdk.singlePlayer.actions.gameOver({ score })`.
 
 ### Try Again no funciona
 
-`onPlayAgain` nunca se registró — Llamar `setupSDKListeners()` en `create()` con `FarcadeSDK`.
+`onPlayAgain` nunca se registró — Llamar `sdk.onPlayAgain(() => ...)` ANTES de `sdk.ready()`.
 
 ### SDK methods not working
 
 1. Ensure you awaited `ready()` first
-2. Check `window.FarcadeSDK` exists before calling methods
+2. Check `(window as any).RemixSDK` exists before calling methods
 3. In dev mode, the mock SDK handles everything
 
 ### State not persisting
@@ -881,11 +896,13 @@ const hasSpeedBoost = sdk.hasItem("speed-boost");
 
 ## Checklist Pre-Deploy
 
-- [ ] **`window.FarcadeSDK`** — NO `RemixSDK` ni otro nombre
+- [ ] **`window.RemixSDK`** — nombre correcto del SDK global (`FarcadeSDK` es alias legacy)
+- [ ] **`await sdk.ready()`** — antes de acceder a getters
 - [ ] **`sdk.singlePlayer.actions.gameOver({ score })`** — sin esto no hay "Game Over" ni "Try Again"
-- [ ] **`sdk.onPlayAgain()`** — registrar callback para restart
-- [ ] **`sdk.onToggleMute()`** — para mute desde la plataforma
+- [ ] **`sdk.onPlayAgain()`** — registrar callback para restart (ANTES de ready)
+- [ ] **`sdk.onToggleMute()`** — para mute desde la plataforma (ANTES de ready)
 - [ ] **Sin `localStorage` / `sessionStorage`** en tu código
+- [ ] **Sin `navigator.vibrate()`** — usar solo `sdk.hapticFeedback()`
 - [ ] **Sin `initRemix()`** — comportamiento runtime prohibido
 - [ ] **Sin dominios externos** fuera de los permitidos (jsdelivr, fonts.googleapis, fonts.gstatic, remix.gg)
 - [ ] **Phaser vía CDN** con `const Phaser = (window as any).Phaser` — NUNCA import ESM

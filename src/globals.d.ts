@@ -3,19 +3,21 @@
  */
 
 // Phaser is loaded globally via CDN
-declare const Phaser: typeof import('phaser')
+declare const Phaser: typeof import("phaser");
 
 // Import the actual SDK types from the package
-import type { FarcadeSDK as FarcadeSDKType } from '@farcade/game-sdk'
+import type { RemixSDK as RemixSDKType } from "@remix-gg/sdk";
 
-// Farcade SDK is loaded globally via CDN
-declare const FarcadeSDK: FarcadeSDKType
+// Remix SDK is loaded globally via CDN
+declare const RemixSDK: RemixSDKType;
 
 // Extend window for global SDK access
 declare global {
   interface Window {
-    FarcadeSDK?: FarcadeSDKType
+    RemixSDK?: RemixSDKType;
+    // Backward-compatible alias (deprecated)
+    FarcadeSDK?: RemixSDKType;
   }
 }
 
-export {}
+export {};

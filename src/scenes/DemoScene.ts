@@ -809,20 +809,18 @@ export class DemoScene extends Phaser.Scene {
   }
 
   private async initializeSDK(): Promise<void> {
-    if (!window.FarcadeSDK) {
+    // Support both RemixSDK (new) and FarcadeSDK (legacy alias)
+    const sdk = (window as any).RemixSDK || (window as any).FarcadeSDK;
+    if (!sdk) {
       // No SDK, create elements immediately
       this.createGameElements();
       return;
     }
 
     // Verify SDK has the expected structure
-    const hasValidAPI =
-      typeof window.FarcadeSDK.on === "function" &&
-      window.FarcadeSDK.singlePlayer?.actions?.ready;
-
-    if (!hasValidAPI) {
+    if (typeof sdk.ready !== "function") {
       console.warn(
-        "FarcadeSDK found but has unexpected structure, starting game without SDK",
+        "RemixSDK found but has unexpected structure, starting game without SDK",
       );
       this.createGameElements();
       return;
@@ -837,133 +835,98 @@ export class DemoScene extends Phaser.Scene {
         : false;
     console.log("[DemoScene] Multiplayer mode:", this.isMultiplayer);
 
-    // Set up SDK event listeners
-    window.FarcadeSDK.on("play_again", () => {
+    // Set up SDK event listeners (BEFORE calling ready)
+    sdk.onPlayAgain(() => {
       console.log(
         "[DemoScene] play_again event received, isMultiplayer:",
         this.isMultiplayer,
       );
-      // In single-player, handle reset locally
       if (!this.isMultiplayer) {
-        console.log("[DemoScene] Single-player mode, calling restartGame()");
         this.restartGame();
-      } else {
-        console.log(
-          "[DemoScene] Multiplayer mode, waiting for game_state_updated(null)",
-        );
       }
-      // In multiplayer, the SDK mock will send game_state_updated(null)
-      // which triggers setupNewGame() via the game_state_updated listener
+      // In multiplayer, the SDK will send game_state_updated(null)
     });
 
-    window.FarcadeSDK.on("toggle_mute", (data: { isMuted: boolean }) => {
-      // Track mute state for audio engine
+    sdk.onToggleMute((data: { isMuted: boolean }) => {
       this.isMuted = data.isMuted;
-      // Send toggle_mute event back to parent to update SDK flag
-      if (window.parent && window.parent !== window) {
-        window.parent.postMessage(
-          {
-            type: "remix_sdk_event",
-            event: { type: "toggle_mute", data: { isMuted: data.isMuted } },
-          },
-          "*",
-        );
+    });
+
+    sdk.onPurchaseComplete((data: { success: boolean; item?: string }) => {
+      if (data.success) {
+        console.log("[DemoScene] Purchase completed:", data.item);
+        // Re-check purchased items after a successful purchase
       }
     });
 
     if (this.isMultiplayer) {
-      // Multiplayer setup - Set up listeners BEFORE calling ready
-      window.FarcadeSDK.on("game_state_updated", (gameState: any) => {
-        console.log(
-          "[DemoScene] game_state_updated event received:",
-          gameState,
-        );
-        // Handle it exactly like chess.js does
-        if (!gameState) {
-          console.log(
-            "[DemoScene] Null state received, calling setupNewGame()",
-          );
+      // Multiplayer setup
+      sdk.onGameStateUpdated((data: any) => {
+        console.log("[DemoScene] game_state_updated event received:", data);
+        if (!data) {
           this.setupNewGame();
         } else {
-          this.handleGameStateUpdate(gameState);
+          this.handleGameStateUpdate(data);
         }
       });
 
-      // State updates come through game_state_updated event only
-
-      // Call multiplayer ready and await the response
       try {
-        const gameInfo = await window.FarcadeSDK.multiplayer.actions.ready();
+        const gameInfo = await sdk.ready();
 
-        // gameInfo structure: { players, player, viewContext, initialGameState }
-        // Extract player data from gameInfo
-        if (gameInfo.players) {
-          this.players = gameInfo.players;
+        // Extract player data
+        if (sdk.players) {
+          this.players = sdk.players;
         }
-        if (gameInfo.player?.id) {
-          this.meId = gameInfo.player.id;
+        if (sdk.player?.id) {
+          this.meId = sdk.player.id;
         }
 
         // Load initial game state if it exists
-        if (gameInfo.initialGameState?.gameState) {
-          const state = gameInfo.initialGameState.gameState;
-          // Check if state is from wrong mode (single-player state in multiplayer)
-          if (!state.playerStates && state.color) {
+        const savedState = sdk.gameState;
+        if (savedState) {
+          // Check if state is from wrong mode
+          if (!savedState.playerStates && savedState.color) {
             console.log(
               "[DemoScene] Detected single-player state in multiplayer mode, ignoring...",
             );
-            // Don't load it, will send fresh multiplayer state below
             this.currentTurnPlayerId = this.players[0]?.id || "1";
           } else {
-            this.loadStateFromData(state);
+            this.loadStateFromData(savedState);
           }
         } else {
-          // No existing state - Player 1 starts first turn
           this.currentTurnPlayerId = this.players[0]?.id || "1";
         }
 
-        // Now create game elements after state is loaded
         this.createGameElements();
 
-        // Only Player 0 (first player) sends initial state to avoid infinite loops
-        // Other players will receive the state via game_state_updated event
-        if (
-          gameInfo.initialGameState === null &&
-          this.meId === this.players[0]?.id
-        ) {
-          // No existing state and I'm Player 0 - send initial state
+        // Only Player 0 sends initial state to avoid infinite loops
+        if (!savedState && this.meId === this.players[0]?.id) {
           setTimeout(() => {
             this.sendGameState();
           }, 100);
         }
       } catch (error) {
         console.error("Failed to initialize multiplayer SDK:", error);
-        // Create game elements anyway if there's an error
         this.createGameElements();
       }
     } else {
-      // Single player - call ready and await it
+      // Single player
       try {
-        const gameInfo = await window.FarcadeSDK.singlePlayer.actions.ready();
+        const gameInfo = await sdk.ready();
 
-        // gameInfo structure: { players, player, viewContext, initialGameState }
-        // initialGameState is the GameStateEnvelope or null
-        if (gameInfo.initialGameState?.gameState) {
-          const state = gameInfo.initialGameState.gameState;
-          // Check if state is from wrong mode (multiplayer state in single-player)
-          if (state.playerStates || state.currentTurnPlayerId) {
+        const savedState = sdk.gameState;
+        if (savedState) {
+          // Check if state is from wrong mode
+          if (savedState.playerStates || savedState.currentTurnPlayerId) {
             console.log(
               "[DemoScene] Detected multiplayer state in single-player mode, clearing...",
             );
-            // Don't load it, send fresh single-player state instead
             setTimeout(() => {
               this.saveGameState();
             }, 100);
           } else {
-            this.loadStateFromData(state);
+            this.loadStateFromData(savedState);
           }
         } else {
-          // No initial state - send our default state
           setTimeout(() => {
             this.saveGameState();
           }, 100);
@@ -972,13 +935,17 @@ export class DemoScene extends Phaser.Scene {
         console.error("Failed to initialize single player SDK:", error);
       }
 
-      // Always create game elements, regardless of SDK response
       this.createGameElements();
     }
   }
 
+  private getSDK(): any {
+    return (window as any).RemixSDK || (window as any).FarcadeSDK;
+  }
+
   private sendGameState(): void {
-    if (!this.isMultiplayer || !window.FarcadeSDK) return;
+    const sdk = this.getSDK();
+    if (!this.isMultiplayer || !sdk) return;
 
     // Wait until we have player info before sending state
     if (!this.players || this.players.length === 0) {
@@ -998,9 +965,7 @@ export class DemoScene extends Phaser.Scene {
 
     console.log("[DemoScene] Sending state:", stateData);
 
-    // Use saveGameState instead of updateGameState (this is the SDK 0.2 pattern)
-    // alertUserIds tells the SDK to notify the other player
-    window.FarcadeSDK.multiplayer.actions.saveGameState({
+    sdk.multiplayer.actions.saveGameState({
       gameState: stateData,
       alertUserIds: otherPlayerId ? [otherPlayerId] : [],
     });
@@ -1149,13 +1114,14 @@ export class DemoScene extends Phaser.Scene {
   }
 
   private triggerGameOver(): void {
-    if (!window.FarcadeSDK) return;
+    const sdk = this.getSDK();
+    if (!sdk) return;
+
+    // Haptic feedback on game over
+    sdk.hapticFeedback();
 
     if (this.isMultiplayer) {
-      // Build scores array for multiplayer
       const scores: Array<{ playerId: string; score: number }> = [];
-
-      // Get scores for all players
       if (this.players && this.players.length >= 2) {
         this.players.forEach((player) => {
           scores.push({
@@ -1164,11 +1130,9 @@ export class DemoScene extends Phaser.Scene {
           });
         });
       }
-
-      window.FarcadeSDK.multiplayer.actions.gameOver({ scores });
+      sdk.multiplayer.actions.gameOver({ scores });
     } else {
-      // Single player
-      window.FarcadeSDK.singlePlayer.actions.gameOver({
+      sdk.singlePlayer.actions.gameOver({
         score: this.getMyState().score,
       });
     }
@@ -1292,9 +1256,10 @@ export class DemoScene extends Phaser.Scene {
   }
 
   private saveGameState(): void {
-    // Save state through SDK only - no localStorage
+    const sdk = this.getSDK();
+    if (!sdk) return;
+
     if (this.isMultiplayer) {
-      // Multiplayer: save full per-player state with turn info
       const gameState = {
         playerStates: this.playerStates,
         currentTurnPlayerId: this.currentTurnPlayerId,
@@ -1302,24 +1267,19 @@ export class DemoScene extends Phaser.Scene {
         timestamp: Date.now(),
       };
 
-      if (window.FarcadeSDK?.multiplayer?.actions?.saveGameState) {
-        const otherPlayerId = this.getOtherPlayerId();
-        window.FarcadeSDK.multiplayer.actions.saveGameState({
-          gameState,
-          alertUserIds: otherPlayerId ? [otherPlayerId] : [],
-        });
-      }
+      const otherPlayerId = this.getOtherPlayerId();
+      sdk.multiplayer.actions.saveGameState({
+        gameState,
+        alertUserIds: otherPlayerId ? [otherPlayerId] : [],
+      });
     } else {
-      // Single-player: save only color preference (score is session-only)
       const myState = this.getMyState();
       const gameState = {
         color: myState.color,
         timestamp: Date.now(),
       };
 
-      if (window.FarcadeSDK?.singlePlayer?.actions?.saveGameState) {
-        window.FarcadeSDK.singlePlayer.actions.saveGameState({ gameState });
-      }
+      sdk.singlePlayer.actions.saveGameState({ gameState });
     }
   }
 
